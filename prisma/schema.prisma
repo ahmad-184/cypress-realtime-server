@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id              String         @unique @default(cuid())
+  name            String?
+  image           String?
+  billing_address Json?
+  payment_method  Json?
+  updatedAt       DateTime?      @updatedAt
+  createdAt       DateTime       @default(now())
+  email           String         @unique
+  emailVerified   DateTime?
+  accounts        Account[]
+  collaborators   Collaborator[]
+  files           File[]
+  folders         Folder[]
+  sessions        Session[]
+  subscriptions   Subscription[]
+  workspaces      Workspace[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Workspace {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime?      @updatedAt
+  workspaceOwnerId String
+  title            String
+  iconId           String?
+  data             String?
+  inTrash          Boolean
+  logo             String?
+  bannerUrl        String?
+  banner_public_id String?
+  type             WorkspaceType  @default(private)
+  collaborators    Collaborator[]
+  files            File[]
+  folders          Folder[]
+  workspaceOwner   User           @relation(fields: [workspaceOwnerId], references: [id], onDelete: Cascade)
+}
+
+model Collaborator {
+  id          String    @id @default(cuid())
+  userId      String
+  workspaceId String
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, workspaceId])
+}
+
+model Folder {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspaceOwnerId String
+  title            String
+  iconId           String?
+  data             String?
+  inTrash          Boolean
+  bannerUrl        String?
+  banner_public_id String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+  inTrashBy        String?
+  files            File[]
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceOwner   User      @relation(fields: [workspaceOwnerId], references: [id], onDelete: Cascade)
+}
+
+model File {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspaceOwnerId String
+  title            String
+  iconId           String?
+  data             String?
+  inTrash          Boolean
+  bannerUrl        String?
+  banner_public_id String?
+  folderId         String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  inTrashBy        String?
+  folder           Folder    @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  wokrspaceOwner   User      @relation(fields: [workspaceOwnerId], references: [id], onDelete: Cascade)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Customer {
+  id                 String  @unique @default(cuid())
+  stripe_customer_id String?
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Price {
+  id                String                 @unique @default(cuid())
+  product_id        String?
+  active            Boolean?
+  description       String?
+  unit_amount       BigInt?
+  currency          String?
+  type              pricing_type?
+  interval          pricing_plan_interval?
+  interval_count    Int?
+  trial_period_days Int?
+  metadata          Json?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Product {
+  id          String   @unique @default(cuid())
+  active      Boolean?
+  name        String?
+  description String?
+  image       String?
+  metadata    Json?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Subscription {
+  id                   String               @unique @default(cuid())
+  user_id              String
+  status               subscription_status?
+  metadata             Json?
+  price_id             String?
+  quantity             Int?
+  cancel_at_period_end Boolean?
+  created              DateTime             @default(dbgenerated("timezone('utc'::text, now())"))
+  current_period_start DateTime             @default(dbgenerated("timezone('utc'::text, now())"))
+  current_period_end   DateTime             @default(dbgenerated("timezone('utc'::text, now())"))
+  ended_at             DateTime?            @default(dbgenerated("timezone('utc'::text, now())"))
+  cancel_at            DateTime?            @default(dbgenerated("timezone('utc'::text, now())"))
+  canceled_at          DateTime?            @default(dbgenerated("timezone('utc'::text, now())"))
+  trial_start          DateTime?            @default(dbgenerated("timezone('utc'::text, now())"))
+  trial_end            DateTime?            @default(dbgenerated("timezone('utc'::text, now())"))
+  user                 User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+enum WorkspaceType {
+  private
+  shared
+}
+
+enum pricing_plan_interval {
+  day
+  week
+  month
+  year
+}
+
+enum pricing_type {
+  one_time
+  recurring
+}
+
+enum subscription_status {
+  trialing
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  unpaid
+}
