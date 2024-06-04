@@ -38,7 +38,7 @@ app.all("*", (req, res, next) => {
 
 app.use(globalErrorHandler);
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 8081;
 
 const server = http.createServer(app);
 
@@ -67,7 +67,12 @@ process.on("SIGTERM", () => {
   });
 });
 
-const io = new SocketServer(server);
+const io = new SocketServer(server, {
+  cors: {
+    origin: "*",
+    methods: ["POST", "GET"],
+  },
+});
 
 io.use(userAuth);
 
