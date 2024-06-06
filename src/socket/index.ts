@@ -1,6 +1,5 @@
 import type { Server } from "socket.io";
 import { findItemBaseOfType } from "../helpers/utils";
-import { File, Folder } from "@prisma/client";
 
 type OnlineUserType = {
   id: string;
@@ -203,7 +202,7 @@ export default function (io: Server) {
       }
     );
 
-    socket.on("add_folder", (room_id: string, data: Folder, by: string) => {
+    socket.on("add_folder", (room_id: string, data: any, by: string) => {
       socket.to(room_id).emit("receive_folder", room_id, data, by);
     });
 

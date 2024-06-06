@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc",
+    "build": "tsc",
     "dev": "cross-env NODE_ENV=development nodemon src/app.ts",
-    "start": "cross-env NODE_ENV=production node dist/app.js"
+    "start": "npx prisma generate && cross-env NODE_ENV=production node dist/app.js",
+    "generate": "npx prisma generate"
   },
   "author": "ahmadreza foroozanpoor",
   "license": "ISC",
@@ -18,13 +19,14 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0",
+    "@prisma/client": "^5.15.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "helmet": "^7.1.0",
+    "prisma": "^5.15.0",
     "socket.io": "^4.7.5"
   }
 }

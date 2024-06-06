@@ -1,5 +1,3 @@
-type rr = {};
-
 class AppError extends Error {
   statusCode: number;
   status: string;

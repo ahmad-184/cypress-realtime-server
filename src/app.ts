@@ -13,6 +13,8 @@ import "./config/db";
 import AppError from "./helpers/AppError";
 import { userAuth } from "./socket/middelware";
 import socket from "./socket";
+import path from "node:path";
+import { rootDir } from "./helpers/path";
 
 dotenv.config();
 
@@ -31,6 +33,13 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(express.static(path.join(rootDir, "../", "public")));
+
+// Test Api
+app.get("/", (_, res) => {
+  res.sendFile(path.join(rootDir, "../", "templates", "template.html"));
+});
 
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

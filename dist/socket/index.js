@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const utils_1 = require("../helpers/utils");
-let files_active_users;
+let files_active_users = [];
 function default_1(io) {
     // fired when client connected
     io.on("connection", (socket) => {
@@ -29,27 +29,49 @@ function default_1(io) {
             socket.join(data.id);
             console.log("rooms :", socket.rooms);
         }));
-        socket.on("join_file", (room_id, fileId, data, callback) => {
-            const user_exist_in_file = files_active_users[fileId].find((e) => e.id === data.id);
-            if (user_exist_in_file)
-                return;
-            files_active_users[fileId] = [
-                ...files_active_users[fileId],
-                Object.assign({}, data),
-            ];
-            socket
-                .to(room_id)
-                .emit("receive_file_online_users", files_active_users[fileId]);
-            callback(files_active_users[fileId]);
+        socket.on("join_file", (room_id, fileId, data) => {
+            var _a;
+            const user_exist_in_file = files_active_users === null || files_active_users === void 0 ? void 0 : files_active_users.find((e) => e.id === fileId);
+            if (!user_exist_in_file) {
+                files_active_users = [
+                    ...files_active_users,
+                    {
+                        id: fileId,
+                        data: [Object.assign({}, data)],
+                    },
+                ];
+                socket
+                    .to(room_id)
+                    .emit("receive_file_online_users", fileId, [Object.assign({}, data)]);
+            }
+            else {
+                const index = files_active_users === null || files_active_users === void 0 ? void 0 : files_active_users.findIndex((e) => e.id === fileId);
+                const is_user_exist = (_a = files_active_users[index].data) === null || _a === void 0 ? void 0 : _a.find((e) => e.id === data.id);
+                if (is_user_exist) {
+                    socket
+                        .to(room_id)
+                        .emit("receive_file_online_users", fileId, files_active_users[index].data);
+                }
+                else {
+                    files_active_users[index].data = [
+                        ...files_active_users[index].data,
+                        Object.assign({}, data),
+                    ];
+                    socket
+                        .to(room_id)
+                        .emit("receive_file_online_users", fileId, files_active_users[index].data);
+                }
+            }
         });
-        socket.on("leave_file", (room_id, fileId, userId, callback) => {
-            const user_exist_in_file = files_active_users[fileId].find((e) => e.id === userId);
-            if (!user_exist_in_file)
+        socket.on("leave_file", (room_id, fileId, userId) => {
+            const file_exist = files_active_users === null || files_active_users === void 0 ? void 0 : files_active_users.find((e) => e.id === fileId);
+            if (!file_exist)
                 return;
-            files_active_users[fileId] = files_active_users[fileId].filter((e) => e.id !== userId);
+            const index = files_active_users.findIndex((e) => e.id === fileId);
+            files_active_users[index].data = files_active_users[index].data.filter((e) => e.id !== userId);
             socket
                 .to(room_id)
-                .emit("receive_file_online_users", files_active_users[fileId]);
+                .emit("receive_file_online_users", fileId, files_active_users[index].data);
         });
         socket.on("send_editor_changes", (deltas, room_id, fileId, by) => {
             socket
@@ -60,6 +82,45 @@ function default_1(io) {
             socket
                 .to(room_id)
                 .emit("receive_cursor_move", range, cursorId, room_id, fileId, by);
+        });
+        socket.on("change_title", (room_id, fileId, title, type, folderId, by) => {
+            socket
+                .to(room_id)
+                .emit("receive_changed_title", room_id, fileId, title, type, folderId, by);
+        });
+        socket.on("change_icon", (room_id, fileId, icon, type, folderId, by) => {
+            socket
+                .to(room_id)
+                .emit("receive_changed_icon", room_id, fileId, icon, type, folderId, by);
+        });
+        socket.on("change_banner", (room_id, fileId, banner, type, folderId, banner_public_id, by) => {
+            socket
+                .to(room_id)
+                .emit("receive_changed_banner", room_id, fileId, banner, type, folderId, banner_public_id, by);
+        });
+        socket.on("add_folder", (room_id, data, by) => {
+            socket.to(room_id).emit("receive_folder", room_id, data, by);
+        });
+        socket.on("add_file", (room_id, data, by) => {
+            socket.to(room_id).emit("receive_file", room_id, data, by);
+        });
+        socket.on("to_trash_file/folder", (room_id, id, folderId, type, by, status, inTrashBy) => {
+            socket
+                .to(room_id)
+                .emit("receive_in_trash_file/folder", room_id, id, folderId, type, by, status, inTrashBy);
+        });
+        socket.on("delete_file/folder", (room_id, id, type, folderId, by) => {
+            socket
+                .to(room_id)
+                .emit("receive_deleted_file/folder", room_id, id, type, folderId, by);
+        });
+        socket.on("update_workspace_settings", (room_id, data, by) => {
+            socket
+                .to(room_id)
+                .emit("receive_updated_workspace_settgins", room_id, data, by);
+        });
+        socket.on("delete_workspace", (room_id, by) => {
+            socket.to(room_id).emit("receive_deleted_workspace", room_id, by);
         });
         // fired when client disconnected
         socket.on("disconnect", () => __awaiter(this, void 0, void 0, function* () {
